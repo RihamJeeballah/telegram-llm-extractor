@@ -5,7 +5,7 @@ import os
 st.set_page_config(page_title="Telegram Information Extractor", layout="wide")
 DATA_FILE = "data.xlsx"
 
-st.title("📊 Telegram  Extraction Dashboard")
+st.title("📊 Telegram Extraction Dashboard")
 st.markdown("Monitor and explore structured messages extracted from your Telegram channel in real time.")
 
 if os.path.exists(DATA_FILE):
@@ -32,8 +32,6 @@ with st.expander("Click to filter table"):
         filtered_df = filtered_df[filtered_df['account_number'].astype(str).str.contains(search_account)]
     if search_project:
         filtered_df = filtered_df[filtered_df['project'].str.contains(search_project, case=False, na=False)]
-else:
-    filtered_df = df
 
 st.subheader("🧾 Extracted Messages")
 st.dataframe(filtered_df, use_container_width=True)
