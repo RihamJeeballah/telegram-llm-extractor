@@ -23,7 +23,7 @@ Return JSON in this exact format:
 }}
 
 Message:
-"""{message_text}"""
+{message_text}
 """
 
     try:
