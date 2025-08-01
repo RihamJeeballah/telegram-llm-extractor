@@ -7,24 +7,23 @@ load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 def extract_fields(message_text):
-    prompt = f"""
-You are an information extractor.
+    json_template = {
+        "account_number": "",
+        "name": "",
+        "amount": "",
+        "currency": "",
+        "machinery": "",
+        "project": "",
+        "details": ""
+    }
 
-Your task is to extract structured fields from the Arabic message provided below and return only a valid JSON object. Do not include any text, explanation, or formatting — only the JSON.
-
-Return JSON in this exact format:
-{{
-  "account_number": "string",
-  "name": "string",
-  "amount": "string",
-  "currency": "string",
-  "project": "string",
-  "details": "string"
-}}
-
-Message:
-{message_text}
-"""
+    prompt = (
+        "You are an information extractor.\n\n"
+        "Your task is to extract structured fields from the following Arabic message and return only a valid JSON object.\n"
+        "Do not include any explanation, markdown, or text — only return JSON matching the template below exactly.\n\n"
+        f"Message:\n{message_text}\n\n"
+        f"Here is the JSON template to be filled in:\n{json.dumps(json_template, ensure_ascii=False)}"
+    )
 
     try:
         response = openai.ChatCompletion.create(
@@ -33,16 +32,13 @@ Message:
             temperature=0
         )
         content = response.choices[0].message.content.strip()
-        if content.startswith("```json"):
+
+        # Clean if wrapped in triple backticks
+        if content.startswith("```json") or content.startswith("```"):
             content = content.replace("```json", "").replace("```", "").strip()
+
         return json.loads(content)
+
     except Exception as e:
         print("❌ JSON extraction failed:", e)
-        return {
-            "account_number": "",
-            "name": "",
-            "amount": "",
-            "currency": "",
-            "project": "",
-            "details": ""
-        }
+        return json_template
