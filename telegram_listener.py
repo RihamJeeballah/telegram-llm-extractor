@@ -23,6 +23,7 @@ if not os.path.exists(data_file):
 @client.on(events.NewMessage(chats=channels_to_listen))
 async def handler(event):
     text = event.raw_text
+    print(f"📩 Received: {text}")  # ADD THIS LINE
     result = extract_fields(text)
     result["timestamp"] = event.date
     result["raw_message"] = text
