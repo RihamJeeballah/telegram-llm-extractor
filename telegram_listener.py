@@ -25,7 +25,7 @@ async def handler(event):
     text = event.raw_text
     print(f"📩 Received: {text}")  # ADD THIS LINE
     result = extract_fields(text)
-    result["timestamp"] = event.date
+    result["timestamp"] = event.date.replace(tzinfo=None)
     result["raw_message"] = text
 
     df = pd.read_excel(data_file)
