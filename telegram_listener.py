@@ -34,4 +34,5 @@ async def handler(event):
 
 # Start the client
 client.start()
+print("👂 Listening to Telegram messages...")
 client.run_until_disconnected()
