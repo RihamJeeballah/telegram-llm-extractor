@@ -3,7 +3,7 @@ import pandas as pd
 import os
 
 st.set_page_config(page_title="Telegram Information Extractor", layout="wide")
-DATA_FILE = "data.xlsx"
+DATA_FILE = os.path.join(os.path.dirname(__file__), "data.xlsx")
 
 st.title("📊 Telegram Extraction Dashboard")
 st.markdown("Monitor and explore structured messages extracted from your Telegram channel in real time.")
