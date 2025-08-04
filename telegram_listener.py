@@ -4,28 +4,36 @@ import os
 from extractor import extract_fields
 from dotenv import load_dotenv
 
-# Load environment variables
+# Load environment variables from .env (for local dev)
 load_dotenv()
 
-api_id = int(os.getenv("TELEGRAM_API_ID"))
+# --------- Set up Telegram credentials safely --------- #
+api_id_str = os.getenv("TELEGRAM_API_ID")
 api_hash = os.getenv("TELEGRAM_API_HASH")
 
+if not api_id_str or not api_hash:
+    raise ValueError("Missing TELEGRAM_API_ID or TELEGRAM_API_HASH in environment variables")
+
+api_id = int(api_id_str)
+
+# --------- Define data storage path --------- #
 DATA_FILE = os.path.join(os.path.dirname(__file__), "data.xlsx")
 
-channels_to_listen = [-4909978596, -4890672685]
+# --------- Define which channels to listen to --------- #
+channels_to_listen = [-4909978596, -4890672685]  # Replace with your actual group/channel IDs
 
+# --------- Initialize Telegram client --------- #
 client = TelegramClient('session', api_id, api_hash)
 
-# Initialize Excel file if it doesn't exist
+# --------- Initialize the Excel file if it doesn't exist --------- #
 def initialize_data_file():
+    print("📁 Saving to:", DATA_FILE)  # ✅ Add this line
     if not os.path.exists(DATA_FILE):
-        columns = [
-            "timestamp", "account_number", "name", "amount", "currency",
-            "project", "details", "machinery", "raw_message"
-        ]
+        columns = ["timestamp", "account_number", "name", "amount", "currency",
+                   "project", "details", "raw_message"]
         pd.DataFrame(columns=columns).to_excel(DATA_FILE, index=False)
 
-# Handler to append new message
+# --------- Handle new incoming messages --------- #
 @client.on(events.NewMessage(chats=channels_to_listen))
 async def handler(event):
     text = event.raw_text
@@ -37,26 +45,23 @@ async def handler(event):
 
     try:
         df = pd.read_excel(DATA_FILE)
-    except FileNotFoundError:
+    except Exception as e:
+        print(f"⚠️ Failed to load Excel file: {e}")
         df = pd.DataFrame()
 
-    df = pd.concat([df, pd.DataFrame([result])], ignore_index=True)
+    df.loc[len(df)] = result
     df.to_excel(DATA_FILE, index=False)
 
     print(f"✅ Message saved: {result}")
 
-# Main listener
+# --------- Entry point for listener --------- #
 def start_listener():
     initialize_data_file()
     client.start()
     print("👂 Listening to Telegram messages...")
+    print("📁 Saving to:", DATA_FILE)  # Optional: shows during actual runtime
     client.run_until_disconnected()
 
-# Run directly
+# Run only when script is executed directly (not imported)
 if __name__ == "__main__":
-    import asyncio
-
-    # Create and set new event loop for Railway
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
     start_listener()
