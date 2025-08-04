@@ -22,6 +22,7 @@ def load_data_from_google_sheet():
         "https://docs.google.com/spreadsheets/d/1Musa3nZ6-n_6xNODuQy2nxicSZl5WgC6s4ErK3dL20A/edit"
     )
     worksheet = sheet.sheet1
+
     data = worksheet.get_all_records()
     df = pd.DataFrame(data)
     return df
@@ -77,4 +78,11 @@ with st.expander("Click to filter table"):
 st.subheader("🧾 Extracted Messages")
 st.dataframe(filtered_df, use_container_width=True)
 
-csv = filtered_df.to_csv(index=False).encode
+csv = filtered_df.to_csv(index=False).encode("utf-8")
+st.download_button("⬇️ Download as CSV", data=csv, file_name="telegram_extracted_data.csv", mime="text/csv")
+
+# --------------------------
+# ✅ Show full table (raw)
+# --------------------------
+with st.expander("🗂 View Raw Google Sheet Data"):
+    st.dataframe(df, use_container_width=True)
