@@ -14,9 +14,12 @@ from google.oauth2.service_account import Credentials
 # ✅ Google Sheet Function
 # -------------------------
 def get_google_sheet():
-    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    SCOPES = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
-    creds = Credentials.from_service_account_file("telegram-468008-e5549b8f8395.json", scopes=SCOPES)
+    scope = [
+        "https://spreadsheets.google.com/feeds",
+        "https://www.googleapis.com/auth/drive"
+    ]
+    service_account_info = json.loads(os.environ["GOOGLE_SERVICE_ACCOUNT_JSON"])
+    creds = Credentials.from_service_account_info(service_account_info, scopes=scope)
     client = gspread.authorize(creds)
     sheet = client.open_by_url("https://docs.google.com/spreadsheets/d/1Musa3nZ6-n_6xNODuQy2nxicSZl5WgC6s4ErK3dL20A/edit")
     return sheet.sheet1
