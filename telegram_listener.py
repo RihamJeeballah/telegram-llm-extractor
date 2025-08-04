@@ -10,6 +10,12 @@ import json
 from google.oauth2 import service_account
 import gspread
 from google.oauth2.service_account import Credentials
+from datetime import datetime
+
+def serialize_value(value):
+    if isinstance(value, datetime):
+        return value.strftime("%Y-%m-%d %H:%M:%S")
+    return value
 # -------------------------
 # ✅ Google Sheet Function
 # -------------------------
@@ -68,8 +74,9 @@ def save_message(result):
     # Save to Google Sheet
     try:
         sheet = get_google_sheet()
+
         values = [
-            result.get("timestamp"),
+            serialize_value(result.get("timestamp")),
             result.get("account_number", ""),
             result.get("name", ""),
             result.get("amount", ""),
