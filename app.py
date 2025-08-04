@@ -1,26 +1,62 @@
+# ✅ Updated app.py (Streamlit Dashboard with Google Sheets)
 import streamlit as st
 import pandas as pd
-import os
-import threading
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
 
+# --------------------------
+# ✅ Function to load live data
+# --------------------------
+def load_data_from_google_sheet():
+    scope = [
+        "https://spreadsheets.google.com/feeds",
+        "https://www.googleapis.com/auth/drive"
+    ]
+    creds = ServiceAccountCredentials.from_json_keyfile_name(
+        "telegram-468008-e5549b8f8395.json", scope
+    )
+    client = gspread.authorize(creds)
 
+    sheet = client.open_by_url(
+        "https://docs.google.com/spreadsheets/d/1Musa3nZ6-n_6xNODuQy2nxicSZl5WgC6s4ErK3dL20A/edit"
+    )
+    worksheet = sheet.sheet1
+    data = worksheet.get_all_records()
+    df = pd.DataFrame(data)
+    return df
+
+# --------------------------
+# ✅ Streamlit UI
+# --------------------------
 st.set_page_config(page_title="Telegram Information Extractor", layout="wide")
-DATA_FILE = os.path.join(os.path.dirname(__file__), "data.xlsx")
 
 st.title("📊 Telegram Extraction Dashboard")
 st.markdown("Monitor and explore structured messages extracted from your Telegram channel in real time.")
 
-if os.path.exists(DATA_FILE):
-    df = pd.read_excel(DATA_FILE)
-else:
-    st.warning("⚠️ No data found yet. Please wait for the Telegram listener to receive messages.")
+# --------------------------
+# ✅ Load data
+# --------------------------
+try:
+    df = load_data_from_google_sheet()
+except Exception as e:
+    st.error(f"❌ Failed to load data from Google Sheets: {e}")
     st.stop()
 
+if df.empty:
+    st.warning("⚠️ No data found yet. Please wait for messages to be received.")
+    st.stop()
+
+# --------------------------
+# ✅ Summary metrics
+# --------------------------
 st.subheader("📌 Summary")
 col1, col2 = st.columns(2)
 col1.metric("📄 Total Entries", len(df))
 col2.metric("🧑‍💼 Unique Names", df['name'].nunique())
 
+# --------------------------
+# ✅ Search / Filter
+# --------------------------
 st.subheader("🔍 Search & Filter")
 with st.expander("Click to filter table"):
     search_name = st.text_input("Search by Name")
@@ -29,17 +65,23 @@ with st.expander("Click to filter table"):
 
     filtered_df = df.copy()
     if search_name:
-        filtered_df = filtered_df[filtered_df['name'].str.contains(search_name, case=False, na=False)]
+        filtered_df = filtered_df[filtered_df['name'].astype(str).str.contains(search_name, case=False, na=False)]
     if search_account:
         filtered_df = filtered_df[filtered_df['account_number'].astype(str).str.contains(search_account)]
     if search_project:
-        filtered_df = filtered_df[filtered_df['project'].str.contains(search_project, case=False, na=False)]
+        filtered_df = filtered_df[filtered_df['project'].astype(str).str.contains(search_project, case=False, na=False)]
 
+# --------------------------
+# ✅ Show table + download
+# --------------------------
 st.subheader("🧾 Extracted Messages")
 st.dataframe(filtered_df, use_container_width=True)
 
 csv = filtered_df.to_csv(index=False).encode("utf-8")
 st.download_button("⬇️ Download as CSV", data=csv, file_name="telegram_extracted_data.csv", mime="text/csv")
 
-with st.expander("🗂 View Raw Database (Full Excel File)"):
+# --------------------------
+# ✅ Show full table (raw)
+# --------------------------
+with st.expander("🗂 View Raw Google Sheet Data"):
     st.dataframe(df, use_container_width=True)

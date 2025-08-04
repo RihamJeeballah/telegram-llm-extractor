@@ -3,65 +3,100 @@ import pandas as pd
 import os
 from extractor import extract_fields
 from dotenv import load_dotenv
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
 
-# Load environment variables from .env (for local dev)
+# -------------------------
+# ✅ Google Sheet Function
+# -------------------------
+def get_google_sheet():
+    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+    creds = ServiceAccountCredentials.from_json_keyfile_name("telegram-468008-e5549b8f8395.json", scope)
+    client = gspread.authorize(creds)
+    sheet = client.open_by_url("https://docs.google.com/spreadsheets/d/1Musa3nZ6-n_6xNODuQy2nxicSZl5WgC6s4ErK3dL20A/edit")
+    return sheet.sheet1
+
+# -------------------------
+# ✅ Load environment
+# -------------------------
 load_dotenv()
-
-# --------- Set up Telegram credentials safely --------- #
 api_id_str = os.getenv("TELEGRAM_API_ID")
 api_hash = os.getenv("TELEGRAM_API_HASH")
-
 if not api_id_str or not api_hash:
-    raise ValueError("Missing TELEGRAM_API_ID or TELEGRAM_API_HASH in environment variables")
-
+    raise ValueError("Missing TELEGRAM_API_ID or TELEGRAM_API_HASH in .env")
 api_id = int(api_id_str)
 
-# --------- Define data storage path --------- #
+# -------------------------
+# ✅ Settings
+# -------------------------
 DATA_FILE = os.path.join(os.path.dirname(__file__), "data.xlsx")
-
-# --------- Define which channels to listen to --------- #
-channels_to_listen = [-4909978596, -4890672685]  # Replace with your actual group/channel IDs
-
-# --------- Initialize Telegram client --------- #
+channels_to_listen = [-4909978596, -4890672685]  # Replace with your actual Telegram group/channel IDs
 client = TelegramClient('session', api_id, api_hash)
 
-# --------- Initialize the Excel file if it doesn't exist --------- #
+# -------------------------
+# ✅ Create Excel if missing
+# -------------------------
 def initialize_data_file():
-    print("📁 Saving to:", DATA_FILE)  # ✅ Add this line
+    
     if not os.path.exists(DATA_FILE):
-        columns = ["timestamp", "account_number", "name", "amount", "currency",
-                   "project", "details", "raw_message"]
+        columns = ["timestamp", "account_number", "name", "amount", "currency", "project", "details", "raw_message"]
         pd.DataFrame(columns=columns).to_excel(DATA_FILE, index=False)
 
-# --------- Handle new incoming messages --------- #
+# -------------------------
+# ✅ Save to both Excel + Google Sheet
+# -------------------------
+def save_message(result):
+    # Save to Excel
+    try:
+        df = pd.read_excel(DATA_FILE)
+    except Exception as e:
+        print(f"⚠️ Failed to load Excel: {e}")
+        df = pd.DataFrame()
+
+    df.loc[len(df)] = result
+    df.to_excel(DATA_FILE, index=False)
+    print("📁 Saved to local Excel")
+
+    # Save to Google Sheet
+    try:
+        sheet = get_google_sheet()
+        values = [
+            result.get("timestamp"),
+            result.get("account_number", ""),
+            result.get("name", ""),
+            result.get("amount", ""),
+            result.get("currency", ""),
+            result.get("project", ""),
+            result.get("details", ""),
+            result.get("raw_message", "")
+        ]
+        sheet.append_row(values)
+        print("✅ Also saved to Google Sheet")
+    except Exception as e:
+        print(f"⚠️ Failed to write to Google Sheet: {e}")
+
+# -------------------------
+# ✅ Handle incoming messages
+# -------------------------
 @client.on(events.NewMessage(chats=channels_to_listen))
 async def handler(event):
     text = event.raw_text
-    print(f"📩 Received: {text}")
+    print(f"📩 New message: {text}")
 
     result = extract_fields(text)
     result["timestamp"] = event.date.replace(tzinfo=None)
     result["raw_message"] = text
 
-    try:
-        df = pd.read_excel(DATA_FILE)
-    except Exception as e:
-        print(f"⚠️ Failed to load Excel file: {e}")
-        df = pd.DataFrame()
+    save_message(result)
 
-    df.loc[len(df)] = result
-    df.to_excel(DATA_FILE, index=False)
-
-    print(f"✅ Message saved: {result}")
-
-# --------- Entry point for listener --------- #
+# -------------------------
+# ✅ Run the listener
+# -------------------------
 def start_listener():
     initialize_data_file()
     client.start()
-    print("👂 Listening to Telegram messages...")
-    print("📁 Saving to:", DATA_FILE)  # Optional: shows during actual runtime
+    print("👂 Telegram listener started...")
     client.run_until_disconnected()
 
-# Run only when script is executed directly (not imported)
 if __name__ == "__main__":
     start_listener()

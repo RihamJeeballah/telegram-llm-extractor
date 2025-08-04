@@ -4,3 +4,8 @@ pandas
 openpyxl
 streamlit
 python-dotenv
+gspread 
+gspread_dataframe 
+oauth2client
+pandas
+streamlit
