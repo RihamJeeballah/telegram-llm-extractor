@@ -1,10 +1,10 @@
-import openai
+# extractor.py
 import os
 import json
 from dotenv import load_dotenv
+from openai import OpenAI, OpenAIError
 
 load_dotenv()
-client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 def extract_fields(message_text):
     json_template = {
@@ -26,13 +26,14 @@ def extract_fields(message_text):
     )
 
     try:
+        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))  # moved inside
         response = client.chat.completions.create(
             model="gpt-4",
             messages=[{"role": "user", "content": prompt}],
             temperature=0
         )
-        content = response.choices[0].message.content.strip()
 
+        content = response.choices[0].message.content.strip()
         if content.startswith("```json") or content.startswith("```"):
             content = content.replace("```json", "").replace("```", "").strip()
 
