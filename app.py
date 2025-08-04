@@ -2,7 +2,9 @@
 import streamlit as st
 import pandas as pd
 import gspread
-from oauth2client.service_account import ServiceAccountCredentials
+import os
+import json
+from google.oauth2.service_account import Credentials
 
 # --------------------------
 # ✅ Function to load live data
@@ -12,9 +14,8 @@ def load_data_from_google_sheet():
         "https://spreadsheets.google.com/feeds",
         "https://www.googleapis.com/auth/drive"
     ]
-    creds = ServiceAccountCredentials.from_json_keyfile_name(
-        "telegram-468008-e5549b8f8395.json", scope
-    )
+    service_account_info = json.loads(os.environ["GOOGLE_SERVICE_ACCOUNT_JSON"])
+    creds = Credentials.from_service_account_info(service_account_info, scopes=scope)
     client = gspread.authorize(creds)
 
     sheet = client.open_by_url(
@@ -29,7 +30,6 @@ def load_data_from_google_sheet():
 # ✅ Streamlit UI
 # --------------------------
 st.set_page_config(page_title="Telegram Information Extractor", layout="wide")
-
 st.title("📊 Telegram Extraction Dashboard")
 st.markdown("Monitor and explore structured messages extracted from your Telegram channel in real time.")
 
@@ -77,11 +77,4 @@ with st.expander("Click to filter table"):
 st.subheader("🧾 Extracted Messages")
 st.dataframe(filtered_df, use_container_width=True)
 
-csv = filtered_df.to_csv(index=False).encode("utf-8")
-st.download_button("⬇️ Download as CSV", data=csv, file_name="telegram_extracted_data.csv", mime="text/csv")
-
-# --------------------------
-# ✅ Show full table (raw)
-# --------------------------
-with st.expander("🗂 View Raw Google Sheet Data"):
-    st.dataframe(df, use_container_width=True)
+csv = filtered_df.to_csv(index=False).encode

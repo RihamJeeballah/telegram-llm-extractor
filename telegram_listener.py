@@ -5,13 +5,20 @@ from extractor import extract_fields
 from dotenv import load_dotenv
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
+import os
+import json
+from google.oauth2 import service_account
+
 
 # -------------------------
 # ✅ Google Sheet Function
 # -------------------------
 def get_google_sheet():
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    creds = ServiceAccountCredentials.from_json_keyfile_name("telegram-468008-e5549b8f8395.json", scope)
+
+    # Load the JSON from the Railway environment variable
+    service_account_info = json.loads(os.environ["GOOGLE_SERVICE_ACCOUNT_JSON"])
+    creds = service_account.Credentials.from_service_account_info(service_account_info)
     client = gspread.authorize(creds)
     sheet = client.open_by_url("https://docs.google.com/spreadsheets/d/1Musa3nZ6-n_6xNODuQy2nxicSZl5WgC6s4ErK3dL20A/edit")
     return sheet.sheet1
