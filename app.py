@@ -1,6 +1,10 @@
 import streamlit as st
 import pandas as pd
 import os
+import threading
+from telegram_listener import start_listener  # we’ll write this
+listener_thread = threading.Thread(target=start_listener, daemon=True)
+listener_thread.start()
 
 st.set_page_config(page_title="Telegram Information Extractor", layout="wide")
 DATA_FILE = os.path.join(os.path.dirname(__file__), "data.xlsx")
